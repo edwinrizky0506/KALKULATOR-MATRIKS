@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Kalkulator Matriks online - operasi matriks lengkap">
+<title>Kalkulator Matriks Online</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--primary:#315efb;--primary2:#2147d8;--border:#dbe2ea;--danger:#dc3545;--success:#138a52}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,#182848,#315efb);color:#fff;padding:32px 18px;text-align:center}
+header h1{margin:0 0 8px;font-size:clamp(26px,5vw,42px)}
+header p{margin:0;opacity:.9}
+.container{max-width:1150px;margin:25px auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 7px 25px rgba(20,35,60,.06)}
+h2{margin:0 0 15px;font-size:21px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+label{font-size:13px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px}
+select,input,button{font:inherit}
+select,.size-input{height:42px;border:1px solid var(--border);border-radius:10px;padding:0 11px;background:#fff;color:var(--text)}
+.size-input{width:75px}
+button{border:0;border-radius:10px;padding:11px 16px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer;transition:.15s}
+button:hover{background:var(--primary2);transform:translateY(-1px)}
+button.secondary{background:#eef2ff;color:#2444b8}
+button.gray{background:#e9edf3;color:#303b4f}
+button.danger{background:#fff0f1;color:#b4232e}
+.matrix-wrap{overflow-x:auto;padding-bottom:3px}
+.matrix{border-collapse:separate;border-spacing:6px;margin:5px 0}
+.matrix td{padding:0}
+.matrix input{width:68px;height:48px;text-align:center;border:1px solid var(--border);border-radius:9px;font-size:16px;font-weight:600;outline:none}
+.matrix input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(49,94,251,.12)}
+.matrix-label{font-weight:800;font-size:18px;margin-bottom:4px}
+.matrices{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.result{background:#f8fafc;border:1px solid var(--border);border-radius:13px;padding:16px;min-height:80px;overflow:auto}
+.result .matrix{margin:0}
+.result table.matrix input{background:#fff}
+.error{color:var(--danger);font-weight:700}
+.success{color:var(--success);font-weight:700}
+.history-item{border-bottom:1px solid var(--border);padding:10px 0}
+.history-item:last-child{border-bottom:0}
+.history-op{font-weight:800}
+.small{font-size:13px;color:var(--muted)}
+.hidden{display:none}
+footer{text-align:center;padding:25px;color:var(--muted);font-size:13px}
+@media(max-width:760px){.matrices{grid-template-columns:1fr}.matrix input{width:58px;height:44px}.card{padding:15px}}
+</style>
+</head>
+<body>
+<header>
+<h1>⌗ Kalkulator Matriks</h1>
+<p>Operasi matriks online — sederhana, cepat, dan responsif</p>
+</header>
+
+<main class="container">
+<section class="card">
+<h2>Pengaturan Matriks</h2>
+<div class="controls">
+<div><label>Baris</label><input id="rows" class="size-input" type="number" min="1" max="8" value="3"></div>
+<div><label>Kolom</label><input id="cols" class="size-input" type="number" min="1" max="8" value="3"></div>
+<button onclick="buildMatrices()">Buat Matriks</button>
+<button class="secondary" onclick="randomizeMatrices()">Isi Acak</button>
+<button class="gray" onclick="clearMatrices()">Kosongkan</button>
+</div>
+</section>
+
+<section class="card">
+<h2>Input Matriks</h2>
+<div class="matrices">
+<div><div class="matrix-label">Matriks A</div><div id="matrixA" class="matrix-wrap"></div></div>
+<div id="matrixBbox"><div class="matrix-label">Matriks B</div><div id="matrixB" class="matrix-wrap"></div></div>
+</div>
+</section>
+
+<section class="card">
+<h2>Operasi</h2>
+<div class="controls">
+<div>
+<label>Pilih operasi</label>
+<select id="operation" onchange="operationChanged()">
+<option value="add">A + B</option>
+<option value="sub">A − B</option>
+<option value="mul">A × B</option>
+<option value="detA">Determinan A</option>
+<option value="detB">Determinan B</option>
+<option value="invA">Invers A</option>
+<option value="invB">Invers B</option>
+<option value="transA">Transpose A</option>
+<option value="transB">Transpose B</option>
+<option value="rankA">Rank A</option>
+<option value="rankB">Rank B</option>
+</select>
+</div>
+<button onclick="calculate()">Hitung</button>
+</div>
+</section>
+
+<section class="card">
+<h2>Hasil</h2>
+<div id="result" class="result"><span class="small">Hasil perhitungan akan muncul di sini.</span></div>
+</section>
+
+<section class="card">
+<h2>Riwayat</h2>
+<div id="history"><div class="small">Belum ada riwayat.</div></div>
+<button class="danger" onclick="clearHistory()">Hapus Riwayat</button>
+</section>
+</main>
+
+<footer>Kalkulator Matriks Online • Berjalan sepenuhnya di browser</footer>
+
+<script>
+let R=3,C=3;
+
+function esc(v){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+
+function makeMatrix(id, r, c, values=null){
+ let html='<table class="matrix"><tbody>';
+ for(let i=0;i<r;i++){
+  html+='<tr>';
+  for(let j=0;j<c;j++){
+   let v=values ? values[i][j] : 0;
+   html+=`<td><input type="number" step="any" value="${v}" data-m="${id}" data-r="${i}" data-c="${j}"></td>`;
+  }
+  html+='</tr>';
+ }
+ html+='</tbody></table>';
+ document.getElementById(id==='A'?'matrixA':'matrixB').innerHTML=html;
+}
+
+function buildMatrices(){
+ R=Math.max(1,Math.min(8,parseInt(document.getElementById('rows').value)||3));
+ C=Math.max(1,Math.min(8,parseInt(document.getElementById('cols').value)||3));
+ document.getElementById('rows').value=R; document.getElementById('cols').value=C;
+ makeMatrix('A',R,C); makeMatrix('B',R,C);
+ document.getElementById('result').innerHTML='<span class="small">Matriks berhasil dibuat.</span>';
+}
+
+function getMatrix(id){
+ const el=document.querySelectorAll(`input[data-m="${id}"]`);
+ const m=Array.from({length:id==='A'?R:R},()=>[]);
+ el.forEach(x=>m[+x.dataset.r][+x.dataset.c]=parseFloat(x.value)||0);
+ return m;
+}
+function randomizeMatrices(){
+ document.querySelectorAll('.matrix input').forEach(x=>x.value=Math.floor(Math.random()*19)-9);
+}
+function clearMatrices(){
+ document.querySelectorAll('.matrix input').forEach(x=>x.value=0);
+ document.getElementById('result').innerHTML='<span class="small">Semua nilai dikosongkan.</span>';
+}
+
+function add(A,B){return A.map((row,i)=>row.map((v,j)=>v+B[i][j]));}
+function sub(A,B){return A.map((row,i)=>row.map((v,j)=>v-B[i][j]));}
+function mul(A,B){
+ const a=A.length,b=A[0].length,c=B[0].length;
+ const out=Array.from({length:a},()=>Array(c).fill(0));
+ for(let i=0;i<a;i++)for(let j=0;j<c;j++)for(let k=0;k<b;k++)out[i][j]+=A[i][k]*B[k][j];
+ return out;
+}
+function transpose(A){return A[0].map((_,j)=>A.map(row=>row[j]));}
+
+function determinant(A){
+ const n=A.length;
+ if(n!==A[0].length) throw Error('Determinan hanya dapat dihitung untuk matriks persegi.');
+ let M=A.map(r=>r.slice()), det=1;
+ for(let i=0;i<n;i++){
+  let p=i;
+  for(let r=i+1;r<n;r++)if(Math.abs(M[r][i])>Math.abs(M[p][i]))p=r;
+  if(Math.abs(M[p][i])<1e-12)return 0;
+  if(p!==i){[M[p],M[i]]=[M[i],M[p]];det*=-1;}
+  const pivot=M[i][i]; det*=pivot;
+  for(let r=i+1;r<n;r++){
+   const f=M[r][i]/pivot;
+   for(let j=i;j<n;j++)M[r][j]-=f*M[i][j];
+  }
+ }
+ return det;
+}
+
+function inverse(A){
+ const n=A.length;
+ if(n!==A[0].length) throw Error('Invers hanya dapat dihitung untuk matriks persegi.');
+ let M=A.map((row,i)=>row.concat(Array.from({length:n},(_,j)=>i===j?1:0)));
+ for(let i=0;i<n;i++){
+  let p=i;
+  for(let r=i+1;r<n;r++)if(Math.abs(M[r][i])>Math.abs(M[p][i]))p=r;
+  if(Math.abs(M[p][i])<1e-12)throw Error('Matriks tidak memiliki invers karena determinannya 0.');
+  [M[i],M[p]]=[M[p],M[i]];
+  const d=M[i][i]; for(let j=0;j<2*n;j++)M[i][j]/=d;
+  for(let r=0;r<n;r++)if(r!==i){
+   const f=M[r][i];
+   for(let j=0;j<2*n;j++)M[r][j]-=f*M[i][j];
+  }
+ }
+ return M.map(row=>row.slice(n));
+}
+
+function rank(A){
+ let M=A.map(r=>r.slice()), rows=M.length, cols=M[0].length, rank=0;
+ for(let c=0;c<cols && rank<rows;c++){
+  let p=rank;
+  for(let r=rank+1;r<rows;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
+  if(Math.abs(M[p][c])<1e-10)continue;
+  [M[p],M[rank]]=[M[rank],M[p]];
+  for(let r=0;r<rows;r++)if(r!==rank){
+   const f=M[r][c]/M[rank][c];
+   for(let j=c;j<cols;j++)M[r][j]-=f*M[rank][j];
+  }
+  rank++;
+ }
+ return rank;
+}
+
+function fmt(x){
+ if(Math.abs(x)<1e-10)x=0;
+ return Number.isInteger(x)?String(x):Number(x.toFixed(8)).toString();
+}
+function matrixHTML(M){
+ let s='<table class="matrix"><tbody>';
+ M.forEach(row=>{s+='<tr>'+row.map(v=>`<td><input readonly value="${esc(fmt(v))}"></td>`).join('')+'</tr>';});
+ return s+'</tbody></table>';
+}
+
+function operationChanged(){
+ const op=document.getElementById('operation').value;
+ const needsB=['add','sub','mul','detB','invB','transB','rankB'].includes(op);
+ document.getElementById('matrixBbox').style.opacity=needsB?'1':'.5';
+}
+
+function calculate(){
+ try{
+  const A=getMatrix('A'), B=getMatrix('B'), op=document.getElementById('operation').value;
+  let result, title='';
+  if(op==='add'){if(R!==B.length||C!==B[0].length)throw Error('Ukuran matriks harus sama.');result=add(A,B);title='A + B';}
+  if(op==='sub'){if(R!==B.length||C!==B[0].length)throw Error('Ukuran matriks harus sama.');result=sub(A,B);title='A − B';}
+  if(op==='mul'){if(C!==B.length)throw Error('Perkalian tidak dapat dilakukan: jumlah kolom A harus sama dengan jumlah baris B.');result=mul(A,B);title='A × B';}
+  if(op==='detA'){result=determinant(A);title='det(A)';}
+  if(op==='detB'){result=determinant(B);title='det(B)';}
+  if(op==='invA'){result=inverse(A);title='A⁻¹';}
+  if(op==='invB'){result=inverse(B);title='B⁻¹';}
+  if(op==='transA'){result=transpose(A);title='Aᵀ';}
+  if(op==='transB'){result=transpose(B);title='Bᵀ';}
+  if(op==='rankA'){result=rank(A);title='rank(A)';}
+  if(op==='rankB'){result=rank(B);title='rank(B)';}
+  document.getElementById('result').innerHTML=`<div class="success">${esc(title)}</div>`+(Array.isArray(result)?matrixHTML(result):`<div style="font-size:28px;font-weight:800;margin-top:8px">${fmt(result)}</div>`);
+  addHistory(title,result);
+ }catch(e){document.getElementById('result').innerHTML=`<div class="error">⚠ ${esc(e.message)}</div>`;}
+}
+
+function addHistory(title,result){
+ let h=JSON.parse(localStorage.getItem('matrixHistory')||'[]');
+ h.unshift({title,result,time:new Date().toLocaleString('id-ID')});
+ h=h.slice(0,10);localStorage.setItem('matrixHistory',JSON.stringify(h));renderHistory();
+}
+function renderHistory(){
+ const h=JSON.parse(localStorage.getItem('matrixHistory')||'[]'),box=document.getElementById('history');
+ if(!h.length){box.innerHTML='<div class="small">Belum ada riwayat.</div>';return}
+ box.innerHTML=h.map(x=>`<div class="history-item"><div class="history-op">${esc(x.title)}</div><div class="small">${esc(x.time)}</div><div>${Array.isArray(x.result)?matrixHTML(x.result):fmt(x.result)}</div></div>`).join('');
+}
+function clearHistory(){localStorage.removeItem('matrixHistory');renderHistory();}
+
+buildMatrices();renderHistory();operationChanged();
+</script>
+</body>
+</html>
